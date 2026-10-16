@@ -1,0 +1,7 @@
+main: betterlite\bedwars\BedWars
+name: BetterBedWars
+api: 5.0.0
+version: 1.2.0
+author: BetterLite
+website: github.com/BetterLite
+description: 🛏️ A BedWars plugin for PocketMine-MP servers

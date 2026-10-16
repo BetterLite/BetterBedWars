@@ -35,6 +35,11 @@ BetterBedWars is a PvP minigame where teams must protect their bed from being de
 - 📂 **3 storage providers** — SQLite3, MySQL (async) and JSON
 - 🌟 **And more!**
 
+### What this fork adds
+- ✅ **20+ bug fixes** (crashes on quit, map creation, MySQL loading, traps, TNT, tracking and more)
+- ✅ **All original TODOs completed** — final kills, trap sounds, `Mode`/`ShopId` enums, deduplicated code
+- See the full list in the [changelog](changelogs/1.2.0.md).
+
 ## 📥 Installation
 
 1. Download the latest `.phar` from the [releases](https://github.com/Sergittos/BedWars/releases) page.
@@ -77,11 +82,24 @@ mysql-credentials:
   port: 3306
 ```
 
+## 🛠️ Building from source
+
+```bash
+git clone https://github.com/Sergittos/BedWars.git
+cd BedWars
+composer install
+composer build   # produces BedwarsPM.phar via Pharynx
+```
+
 ## 📚 Libraries Used
 
 - [EasyUI](https://github.com/dresnite/easyui) by **dresnite**
 - [bStats](https://github.com/Bastian/bstats-pmmp) by **Bastian**
 - [Pharynx](https://github.com/SOF3/pharynx) by **SOF3** (build tooling)
+
+## 📄 License
+
+This project is licensed under the **GNU Lesser General Public License v3.0** (inherited from the original project). See the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Credits
 
