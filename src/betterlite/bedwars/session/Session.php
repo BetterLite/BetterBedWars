@@ -11,7 +11,6 @@ use pocketmine\entity\effect\InvisibilityEffect;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\item\ItemTypeIds;
 use pocketmine\item\VanillaItems;
-use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\BossEventPacket;
 use pocketmine\network\mcpe\protocol\ClientboundPacket;
 use pocketmine\network\mcpe\protocol\MobArmorEquipmentPacket;
@@ -19,6 +18,7 @@ use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\PlaySoundPacket;
 use pocketmine\network\mcpe\protocol\types\BossBarColor;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\player\GameMode;
 use pocketmine\player\Player;
@@ -276,9 +276,23 @@ class Session {
 
     public function showBossBar(string $title): void {
         $this->hideBossBar();
-        $this->sendDataPacket(
-            BossEventPacket::show($this->player->getId(), ColorUtils::translate($title), 10, false, 0, BossBarColor::BLUE)
-        );
+
+        // Built manually on purpose: BossEventPacket::show() has a different
+        // signature across PMMP 5 releases, so property assignment keeps this
+        // working on both older and newer versions.
+        $packet = new BossEventPacket();
+        $packet->bossActorUniqueId = $this->player->getId();
+        $packet->eventType = BossEventPacket::TYPE_SHOW;
+        $packet->title = ColorUtils::translate($title);
+        $packet->filteredTitle = $packet->title;
+        $packet->healthPercent = 1.0;
+        $packet->color = BossBarColor::BLUE;
+        $packet->overlay = 0;
+        if(property_exists($packet, "darkenScreen")) {
+            $packet->darkenScreen = false;
+        }
+
+        $this->sendDataPacket($packet);
     }
 
     public function hideBossBar(): void {
@@ -291,14 +305,18 @@ class Session {
 
     public function playSound(string $sound, float $volume = 1.0, float $pitch = 1.0): void {
         $location = $this->player->getLocation();
-        $this->sendDataPacket(PlaySoundPacket::create(
-            $sound,
-            $location->getX(),
-            $location->getY(),
-            $location->getZ(),
-            $volume,
-            $pitch
-        ));
+
+        // Built manually on purpose: PlaySoundPacket::create() gained extra
+        // required parameters in newer PMMP releases.
+        $packet = new PlaySoundPacket();
+        $packet->soundName = $sound;
+        $packet->x = $location->getX();
+        $packet->y = $location->getY();
+        $packet->z = $location->getZ();
+        $packet->volume = $volume;
+        $packet->pitch = $pitch;
+
+        $this->sendDataPacket($packet);
     }
 
     public function clearAllInventories(): void {
@@ -439,13 +457,25 @@ class Session {
 
     private function vanish(): void {
         $id = $this->player->getId();
-        $item = ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet(VanillaItems::AIR()));
+        $item = ItemStackWrapper::legacy(ItemStack::null());
         $slot = $this->player->getInventory()->getHeldItemIndex();
 
         foreach($this->game->getPlayers() as $session) {
             $session = $session->getPlayer()->getNetworkSession();
             $session->sendDataPacket(MobEquipmentPacket::create($id, $item, $slot, $slot, ContainerIds::INVENTORY));
-            $session->sendDataPacket(MobArmorEquipmentPacket::create($id, $item, $item, $item, $item));
+
+            // Built manually on purpose: MobArmorEquipmentPacket::create() gained
+            // a body slot in newer PMMP releases.
+            $armor_packet = new MobArmorEquipmentPacket();
+            $armor_packet->actorRuntimeId = $id;
+            $armor_packet->head = $item;
+            $armor_packet->chest = $item;
+            $armor_packet->legs = $item;
+            $armor_packet->feet = $item;
+            if(property_exists($armor_packet, "body")) {
+                $armor_packet->body = $item;
+            }
+            $session->sendDataPacket($armor_packet);
         }
     }
 

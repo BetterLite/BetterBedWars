@@ -39,11 +39,11 @@ class TeamOptionsForm extends SimpleForm {
     private function addSetSpawnPointButton(): void {
         $button = new Button("Set spawn point\nThis will set the spawn point in your location");
         $button->setSubmitListener(function(Player $player) {
-            $position = $player->getPosition();
+            $position = $player->getPosition()->asVector3();
 
             $this->team->setSpawnPoint($position);
 
-            $this->session->message("{GREEN}Spawn point set on: " . $this->vectorToString($player->getPosition()));
+            $this->session->message("{GREEN}Spawn point set on: " . $this->vectorToString($position));
         });
         $this->addButton($button);
     }

@@ -41,13 +41,23 @@ abstract class Scoreboard {
     private function addLine(int $score, string $text, Session $session): void {
         $entry = new ScorePacketEntry();
         $entry->objectiveName = $session->getUsername();
-        $entry->type = ScorePacketEntry::TYPE_FAKE_PLAYER;
         $entry->customName = ColorUtils::translate($text);
         $entry->score = $score;
         $entry->scoreboardId = $score;
-        $packet = new SetScorePacket();
-        $packet->type = SetScorePacket::TYPE_CHANGE;
-        $packet->entries[] = $entry;
+
+        if(property_exists($entry, "action")) {
+            // Newer PMMP versions replaced the entry type integer with an
+            // action enum and made SetScorePacket::entries private.
+            $entry->action = constant("pocketmine\\network\\mcpe\\protocol\\types\\ScorePacketEntryAction::CHANGE_FAKE_PLAYER");
+            $packet = SetScorePacket::create([$entry]);
+        } else {
+            // Compatibility with older PMMP 5 versions.
+            $entry->type = constant(ScorePacketEntry::class . "::TYPE_FAKE_PLAYER");
+            $packet = new SetScorePacket();
+            $packet->type = SetScorePacket::TYPE_CHANGE;
+            $packet->entries[] = $entry;
+        }
+
         $session->sendDataPacket($packet);
     }
 

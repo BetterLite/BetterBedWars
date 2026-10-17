@@ -67,7 +67,7 @@ class MapFactory {
                 $team_generators[] = new GoldGenerator(self::createVector($generator_data));
 
                 $teams[] = new Team(
-                    ucfirst($data["name"]), $players_per_team,
+                    ucfirst($data["name"]), $players_per_team->value,
                     self::createVector($data["spawn_point"]), new Vector3($bed_data["x"], $bed_data["y"] + 1, $bed_data["z"]),
                     Area::fromData($areas_data["zone"]), Area::fromData($areas_data["claim"]), $team_generators
                 );

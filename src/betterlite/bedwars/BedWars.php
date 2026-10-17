@@ -6,6 +6,34 @@ declare(strict_types=1);
 namespace betterlite\bedwars;
 
 
+// Load only the plugin libraries when the plugin is run directly from the
+// source tree. Do not load vendor/autoload.php here: it also registers the
+// PocketMine-MP bundled with Composer, which can conflict with the server's
+// own PocketMine-MP classes. Production .phar builds provide these libraries
+// through Pharynx.
+$vendor_dir = dirname(__DIR__, 3) . "/vendor";
+if(is_dir($vendor_dir)) {
+    $dependency_roots = [
+        "bStats\\PocketmineMp\\" => $vendor_dir . "/bstats/pocketmine-mp/src/",
+        "dresnite\\EasyUI\\" => $vendor_dir . "/dresnite/easyui/src/dresnite/EasyUI/",
+    ];
+
+    spl_autoload_register(static function(string $class) use ($dependency_roots): void {
+        foreach($dependency_roots as $prefix => $root) {
+            if(!str_starts_with($class, $prefix)) {
+                continue;
+            }
+
+            $relative_class = substr($class, strlen($prefix));
+            $file = $root . str_replace("\\", DIRECTORY_SEPARATOR, $relative_class) . ".php";
+            if(is_file($file)) {
+                require_once $file;
+            }
+            return;
+        }
+    });
+}
+
 use bStats\PocketmineMp\Metrics;
 use pocketmine\entity\Entity;
 use pocketmine\entity\EntityDataHelper;

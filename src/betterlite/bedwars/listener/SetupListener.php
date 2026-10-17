@@ -11,11 +11,12 @@ use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerItemUseEvent;
 use pocketmine\item\Item;
+use pocketmine\nbt\tag\StringTag;
 use betterlite\bedwars\item\BedwarsItem;
 use betterlite\bedwars\item\BedwarsItems;
 use betterlite\bedwars\session\Session;
 use betterlite\bedwars\session\SessionFactory;
-use function strtolower;
+use function strtoupper;
 
 class SetupListener implements Listener {
 
@@ -50,7 +51,12 @@ class SetupListener implements Listener {
     }
 
     private function getBedwarsItem(Item $item): ?BedwarsItem {
-        return BedwarsItems::getAll()[strtolower($item->getNamedTag()->getString("bedwars_name"))] ?? null;
+        $tag = $item->getNamedTag()->getTag("bedwars_name");
+        if(!$tag instanceof StringTag) {
+            return null;
+        }
+
+        return BedwarsItems::getAll()[strtoupper($tag->getValue())] ?? null;
     }
 
     private function isCreatingMap(Session $session, Item $item): bool {

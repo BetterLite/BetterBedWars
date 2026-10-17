@@ -1,11 +1,11 @@
 {
-  "name": "sergittos/bedwars",
+  "name": "betterlite/betterbedwars",
   "description": "BedWars for PocketMine-MP",
   "type": "pocketmine-plugin",
   "license": "LGPL-3.0",
   "require": {
     "bstats/pocketmine-mp": "^1.0",
-    "pocketmine/pocketmine-mp": "^5.0.0",
+    "betterlite/pocketmine-mp": "^5.50.0",
     "dresnite/easyui": "^1.0.6"
   },
   "require-dev": {
@@ -15,7 +15,12 @@
     "classmap": ["src"]
   },
   "scripts": {
-    "build": "php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -p=BedwarsPM.phar"
+    "build": [
+      "@php build/create-vendor-stub.php",
+      "php -dphar.readonly=0 vendor/bin/pharynx -i=. -c -p=BetterBedWars.phar"
+    ],
+    "post-install-cmd": "@php build/create-vendor-stub.php",
+    "post-update-cmd": "@php build/create-vendor-stub.php"
   },
   "config": {
     "platform": {

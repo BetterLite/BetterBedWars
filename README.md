@@ -42,10 +42,12 @@ BetterBedWars is a PvP minigame where teams must protect their bed from being de
 
 ## 📥 Installation
 
-1. Download the latest `.phar` from the [releases](https://github.com/Sergittos/BedWars/releases) page.
+1. Download the latest `.phar` from the [releases](https://github.com/BetterLite/BetterBedWars/releases) page.
 2. Drop it into your server's `plugins/` folder.
 3. Restart the server.
 4. Run `/bedwars` in-game to create and manage your maps, and `/bedwars` (or an NPC) to join a game.
+
+> Use the compiled `.phar` as the production installation. If you run the source folder directly, run `composer install` first so its dependencies are available.
 
 > 📺 Watch a [map creation tutorial](https://youtu.be/BdP5b9C4yqA) from the original project.
 
@@ -85,11 +87,13 @@ mysql-credentials:
 ## 🛠️ Building from source
 
 ```bash
-git clone https://github.com/Sergittos/BedWars.git
-cd BedWars
+git clone https://github.com/BetterLite/BetterBedWars.git
+cd BetterBedWars
 composer install
-composer build   # produces BedwarsPM.phar via Pharynx
+composer build   # produces BetterBedWars.phar via Pharynx
 ```
+
+> The build depends on the [BetterLite](https://github.com/orgs/BetterLite/repositories) server packages (`betterlite/pocketmine-mp`) and embeds bStats + EasyUI into the phar through Pharynx.
 
 ## 📚 Libraries Used
 

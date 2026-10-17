@@ -43,12 +43,12 @@ use pocketmine\item\ItemTypeIds;
 use pocketmine\item\MilkBucket;
 use pocketmine\item\VanillaItems;
 use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\EntityEventBroadcaster;
 use pocketmine\network\mcpe\NetworkBroadcastUtils;
 use pocketmine\network\mcpe\protocol\MobArmorEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
+use pocketmine\network\mcpe\protocol\types\inventory\ItemStack;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\player\chat\LegacyRawChatFormatter;
 use pocketmine\player\Player;
@@ -344,7 +344,7 @@ class GameListener implements Listener {
                     continue;
                 }
 
-                $item = ItemStackWrapper::legacy(TypeConverter::getInstance()->coreItemStackToNet(VanillaItems::AIR()));
+                $item = ItemStackWrapper::legacy(ItemStack::null());
 
                 if($packet instanceof MobEquipmentPacket) {
                     $packet->item = $item;
@@ -353,6 +353,9 @@ class GameListener implements Listener {
                     $packet->chest = $item;
                     $packet->legs = $item;
                     $packet->feet = $item;
+                    if(property_exists($packet, "body")) {
+                        $packet->body = $item;
+                    }
                 }
             }
         }

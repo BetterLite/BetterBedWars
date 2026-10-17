@@ -32,7 +32,7 @@ class PlayBedwarsEntity extends Human {
     private Mode $players_per_team;
 
     public function __construct(Location $location, Skin $skin, CompoundTag $nbt) {
-        $this->players_per_team = Mode::fromInt($nbt->getInt("players_per_team"));
+        $this->players_per_team = Mode::tryFrom($nbt->getInt("players_per_team", 1)) ?? Mode::SOLO;
         parent::__construct($location, $skin);
     }
 
