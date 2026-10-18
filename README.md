@@ -9,7 +9,7 @@
 Solo, Duos & Squads · Spectator mode · In-game map creation · Shops, upgrades & traps
 
 [![API](https://img.shields.io/badge/API-5.0.0-blue)](https://github.com/pmmp/PocketMine-MP)
-[![Version](https://img.shields.io/badge/version-1.2.2-green)](changelogs/1.2.0.md)
+[![Version](https://img.shields.io/badge/version-1.2.2-green)](changelogs/1.2.2.md)
 [![License](https://img.shields.io/badge/license-LGPL--3.0-orange)](LICENSE)
 
 </div>
