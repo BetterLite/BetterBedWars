@@ -25,7 +25,7 @@ abstract class Scoreboard {
             $packet = new SetDisplayObjectivePacket();
             $packet->displaySlot = SetDisplayObjectivePacket::DISPLAY_SLOT_SIDEBAR;
             $packet->objectiveName = $session->getUsername();
-            $packet->displayName = ColorUtils::translate(self::TITLE);
+            $packet->displayName = ColorUtils::translate($this->getTitle());
             $packet->criteriaName = "dummy";
             $packet->sortOrder = SetDisplayObjectivePacket::SORT_ORDER_DESCENDING;
             $session->sendDataPacket($packet);
@@ -67,6 +67,10 @@ abstract class Scoreboard {
             $packet->objectiveName = $session->getUsername();
             $session->sendDataPacket($packet);
         }
+    }
+
+    protected function getTitle(): string {
+        return self::TITLE;
     }
 
     /**

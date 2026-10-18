@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace betterlite\bedwars\session\scoreboard;
 
 
+use betterlite\bedwars\game\stage\EndingStage;
 use betterlite\bedwars\game\stage\PlayingStage;
 use betterlite\bedwars\game\team\Team;
 use betterlite\bedwars\session\Session;
@@ -21,17 +22,59 @@ class GameScoreboard extends Scoreboard {
         }
 
         $stage = $session->getGame()->getStage();
-        if(!$stage instanceof PlayingStage) {
+
+        // Show scoreboard during both PlayingStage and EndingStage
+        if(!$stage instanceof PlayingStage && !$stage instanceof EndingStage) {
             return [];
         }
-        $event = $stage->getNextEvent();
 
-        return [
+        $lines = [
             14 => "{GRAY}" . date("m/d/y"),
             13 => " ",
-            12 => "{WHITE}" . $event->getName() . " in: {GREEN}" . gmdate("i:s", $event->getTimeRemaining()) . "   ",
-            11 => "  ",
-        ] + $this->getTeams($session);
+        ];
+
+        if($stage instanceof PlayingStage) {
+            $event = $stage->getNextEvent();
+            $lines[12] = "{WHITE}" . $event->getName() . " in: {GREEN}" . gmdate("i:s", $event->getTimeRemaining()) . "   ";
+            $lines[11] = "  ";
+        } elseif($stage instanceof EndingStage) {
+            $winner = $stage->getWinner();
+
+            // The winning team gets a dedicated victory scoreboard.
+            if($winner !== null && $session->hasTeam() && $session->getTeam() === $winner) {
+                return $this->getVictoryLines($session, $winner) + $lines;
+            }
+
+            // Losers and spectators: show WHICH team won instead of a
+            // generic "VICTORY!" which wouldn't make sense for them.
+            if($winner !== null) {
+                $lines[12] = $winner->getColor() . $winner->getName() . " {GOLD}VICTORY";
+                $lines[11] = "  ";
+            } else {
+                // Tie: no team won.
+                $lines[12] = $stage->getTitle() . "   ";
+                $lines[11] = "  ";
+            }
+        }
+
+        return $lines + $this->getTeams($session);
+    }
+
+    /**
+     * Scoreboard shown to the members of the winning team.
+     *
+     * @return string[]
+     */
+    private function getVictoryLines(Session $session, Team $winner): array {
+        return [
+            12 => "{GOLD}{BOLD}VICTORY",
+            11 => " ",
+            10 => $winner->getColor() . $winner->getName() . " {WHITE}Team",
+            9 => "{WHITE}has won the game!",
+            8 => " ",
+            7 => "{WHITE}Kills: {GREEN}" . $session->getKills(),
+            6 => "{WHITE}Coins earned: {GREEN}" . $session->getCoins(),
+        ];
     }
 
     private function getTeams(Session $session): array {
