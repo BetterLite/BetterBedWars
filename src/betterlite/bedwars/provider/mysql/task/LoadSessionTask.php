@@ -61,11 +61,24 @@ class LoadSessionTask extends MysqlAsyncTask {
         }
         $data = $rows[0];
 
-        $session->setKills((int) $data["kills"]);
-        $session->setWins((int) $data["wins"]);
-        $session->setCoins((int) $data["coins"]);
+        // The query runs asynchronously: anything earned while it was in flight must be
+        // added to the stored values instead of being overwritten by them.
+        $coins = $session->getCoins() + (int) $data["coins"];
+        $kills = $session->getKills() + (int) $data["kills"];
+        $wins = $session->getWins() + (int) $data["wins"];
+
         $session->setSpectatorSettings(SpectatorSettings::fromData($session, $data));
         $session->finishLoad();
+
+        if($session->getCoins() !== $coins) {
+            $session->setCoins($coins);
+        }
+        if($session->getKills() !== $kills) {
+            $session->setKills($kills);
+        }
+        if($session->getWins() !== $wins) {
+            $session->setWins($wins);
+        }
     }
 
 }

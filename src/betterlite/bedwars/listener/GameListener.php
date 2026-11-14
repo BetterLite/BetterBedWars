@@ -12,7 +12,6 @@ use pocketmine\block\Chest;
 use pocketmine\block\StainedGlass;
 use pocketmine\block\TNT;
 use pocketmine\entity\effect\VanillaEffects;
-use pocketmine\entity\object\ItemEntity;
 use pocketmine\entity\projectile\Arrow;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
@@ -21,7 +20,6 @@ use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\entity\EntityEffectAddEvent;
 use pocketmine\event\entity\EntityExplodeEvent;
-use pocketmine\event\entity\EntityItemPickupEvent;
 use pocketmine\event\entity\EntityPreExplodeEvent;
 use pocketmine\event\entity\EntityTeleportEvent;
 use pocketmine\event\entity\ItemMergeEvent;
@@ -43,8 +41,6 @@ use pocketmine\item\ItemTypeIds;
 use pocketmine\item\MilkBucket;
 use pocketmine\item\VanillaItems;
 use pocketmine\math\Vector3;
-use pocketmine\network\mcpe\EntityEventBroadcaster;
-use pocketmine\network\mcpe\NetworkBroadcastUtils;
 use pocketmine\network\mcpe\protocol\MobArmorEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\MoveActorAbsolutePacket;
@@ -64,6 +60,7 @@ use betterlite\bedwars\session\Session;
 use betterlite\bedwars\session\SessionFactory;
 use betterlite\bedwars\utils\GameUtils;
 use betterlite\bedwars\utils\MathUtils;
+use function abs;
 use function array_map;
 use function in_array;
 use function strtoupper;
@@ -77,7 +74,7 @@ class GameListener implements Listener {
         }
 
         $session = SessionFactory::getSession($entity);
-        if(!$session->isPlaying()) {
+        if($session === null or !$session->isPlaying()) {
             return;
         }
 
@@ -118,7 +115,7 @@ class GameListener implements Listener {
 
     public function onInteract(PlayerInteractEvent $event): void {
         $session = SessionFactory::getSession($event->getPlayer());
-        if(!$session->isPlaying()) {
+        if($session === null or !$session->isPlaying()) {
             return;
         }
         $block = $event->getBlock();
@@ -135,7 +132,7 @@ class GameListener implements Listener {
 
     public function onBreak(BlockBreakEvent $event): void {
         $session = SessionFactory::getSession($event->getPlayer());
-        if(!$session->isPlaying()) {
+        if($session === null or !$session->isPlaying()) {
             return;
         }
 
@@ -164,7 +161,10 @@ class GameListener implements Listener {
         $bed_position = $team->getBedPosition();
         $half_position = $other_half->getPosition();
 
-        if($team->isBedDestroyed() or $half_position === null or (!$bed_position->equals($half_position) and !$bed_position->equals($position))) {
+        if($team->isBedDestroyed() or (!$this->isBedPosition($bed_position, $half_position) and !$this->isBedPosition($bed_position, $position))) {
+            // Never let a bed be broken as a normal block: that would remove the
+            // bed without registering the destruction of the team's bed.
+            $event->cancel();
             return;
         }
 
@@ -180,16 +180,19 @@ class GameListener implements Listener {
 
     public function onPlace(BlockPlaceEvent $event): void {
         $session = SessionFactory::getSession($event->getPlayer());
-        if(!$session->isPlaying()) {
+        if($session === null or !$session->isPlaying()) {
             return;
         }
 
         $game = $session->getGame();
         $world = $event->getPlayer()->getWorld();
 
+        $own_team = $session->hasTeam() ? $session->getTeam()->getName() : null;
+
         foreach($event->getTransaction()->getBlocks() as [$x, $y, $z, $block]) {
             $position = new Position($x, $y, $z, $world);
-            if($this->getTeamByPosition($game, $position)?->getClaim()->isInside($position)) {
+            $claim_team = $this->getTeamByClaim($game, $position);
+            if($claim_team !== null and $claim_team->getName() !== $own_team) {
                 $session->message("{RED}You can't place blocks here!");
                 $event->cancel();
                 return;
@@ -216,7 +219,7 @@ class GameListener implements Listener {
     public function onMove(PlayerMoveEvent $event): void {
         $player = $event->getPlayer();
         $session = SessionFactory::getSession($player);
-        if(!$session->isPlaying() or !$session->hasTeam()) {
+        if($session === null or !$session->isPlaying() or !$session->hasTeam()) {
             return;
         }
 
@@ -239,12 +242,12 @@ class GameListener implements Listener {
 
     public function onChat(PlayerChatEvent $event): void {
         $session = SessionFactory::getSession($event->getPlayer());
-        if(!$session->hasGame()) {
+        if($session === null or !$session->hasGame()) {
             return;
         }
 
         $team = $session->getTeam();
-        if($session->isPlaying() and $team !== null) {
+        if($session !== null and $session->isPlaying() and $team !== null) {
             $prefix = $team->getColor() . "[" . strtoupper($team->getName()) . "] ";
         } elseif($session->isSpectator()) {
             $prefix = TextFormat::DARK_GRAY . "[SPECTATOR] ";
@@ -267,7 +270,7 @@ class GameListener implements Listener {
         }
 
         $session = SessionFactory::getSession($entity);
-        if(!$session->isPlaying()) {
+        if($session === null or !$session->isPlaying()) {
             return;
         }
 
@@ -303,7 +306,7 @@ class GameListener implements Listener {
 
         $child = $event->getChild();
         if($child instanceof Arrow) {
-            SessionFactory::getSession($damager)->playSound("random.orb");
+            SessionFactory::getSession($damager)?->playSound("random.orb");
         }
     }
 
@@ -330,7 +333,7 @@ class GameListener implements Listener {
     public function onDataPacketSend(DataPacketSendEvent $event): void {
         foreach($event->getTargets() as $target) {
             $player = $target->getPlayer();
-            if($player === null or !SessionFactory::hasSession($player) or !SessionFactory::getSession($player)->isPlaying()) {
+            if($player === null or SessionFactory::getSession($player)?->isPlaying() !== true) {
                 continue;
             }
 
@@ -340,7 +343,7 @@ class GameListener implements Listener {
                 }
 
                 $target = $player->getWorld()->getEntity($packet->actorRuntimeId);
-                if(!$target instanceof Player or !SessionFactory::getSession($target)->isPlaying() or !$target->getEffects()->has(VanillaEffects::INVISIBILITY())) {
+                if(!$target instanceof Player or SessionFactory::getSession($target)?->isPlaying() !== true or !$target->getEffects()->has(VanillaEffects::INVISIBILITY())) {
                     continue;
                 }
 
@@ -363,21 +366,21 @@ class GameListener implements Listener {
 
     public function onCraft(CraftItemEvent $event): void {
         $session = SessionFactory::getSession($event->getPlayer());
-        if($session->isPlaying()) {
+        if($session !== null and $session->isPlaying()) {
             $event->cancel();
         }
     }
 
     public function onConsume(PlayerItemConsumeEvent $event): void {
         $session = SessionFactory::getSession($event->getPlayer());
-        if($session->isPlaying() and $event->getItem() instanceof MilkBucket) {
+        if($session !== null and $session->isPlaying() and $event->getItem() instanceof MilkBucket) {
             $session->getGameSettings()->setMagicMilk();
         }
     }
 
     public function onDrop(PlayerDropItemEvent $event): void {
         $session = SessionFactory::getSession($player = $event->getPlayer());
-        if($session->isPlaying() and
+        if($session !== null and $session->isPlaying() and
             in_array($event->getItem()->getTypeId(), [ItemTypeIds::IRON_INGOT, ItemTypeIds::GOLD_INGOT, ItemTypeIds::DIAMOND, ItemTypeIds::EMERALD]) and
             $player->getWorld()->getBlock($player->getPosition()->subtract(0, 2, 0)) instanceof Air) {
             $event->cancel();
@@ -391,33 +394,6 @@ class GameListener implements Listener {
         }
     }
 
-    public function onPickup(EntityItemPickupEvent $event): void {
-        $origin = $event->getOrigin();
-        if(!$origin instanceof ItemEntity or $origin->getOwner() !== "generator") {
-            return;
-        }
-
-        $event->cancel();
-
-        $world = $origin->getWorld();
-        foreach($world->getNearbyEntities($origin->getBoundingBox()->expandedCopy(1, 0.5, 1), $origin) as $entity) {
-            if(!$entity instanceof Player) {
-                continue;
-            }
-
-            NetworkBroadcastUtils::broadcastEntityEvent(
-                $origin->getViewers(),
-                fn(EntityEventBroadcaster $broadcaster, array $recipients) => $broadcaster->onPickUpItem($recipients, $entity, $origin)
-            );
-
-            foreach($entity->getInventory()->addItem($event->getItem()) as $remains) {
-                $world->dropItem($origin->getLocation(), $remains, new Vector3(0, 0, 0));
-            }
-        }
-
-        $origin->flagForDespawn();
-    }
-
     public function onMerge(ItemMergeEvent $event): void {
         if(BedWars::getInstance()->getGameManager()->getGameByWorld($event->getEntity()->getWorld()) === null) {
             return;
@@ -425,7 +401,8 @@ class GameListener implements Listener {
 
         $item = $event->getTarget()->getItem();
         if($item->getCount() >= GameUtils::getCountById($item->getTypeId())) {
-            $event->getEntity()->flagForDespawn();
+            // Keep the two stacks apart instead of destroying the merging one:
+            // cancelling a merge must never delete items from the ground.
             $event->cancel();
         }
     }
@@ -437,7 +414,7 @@ class GameListener implements Listener {
         }
         $game = $session->getGame();
 
-        if($session->isPlaying()) {
+        if($session !== null and $session->isPlaying()) {
             $game->removePlayer($session, false);
         } elseif($session->isSpectator()) {
             $game->removeSpectator($session);
@@ -458,12 +435,17 @@ class GameListener implements Listener {
     }
 
     public function onExhaust(PlayerExhaustEvent $event): void {
-        if(SessionFactory::getSession($event->getPlayer())->isPlaying()) {
+        if(SessionFactory::getSession($event->getPlayer())?->isPlaying() === true) {
             $event->cancel();
         }
     }
 
     public function onBedEnter(PlayerBedEnterEvent $event): void {
+        $session = SessionFactory::getSession($event->getPlayer());
+        if($session === null or !$session->hasGame()) {
+            return;
+        }
+
         $event->cancel();
     }
 
@@ -471,7 +453,7 @@ class GameListener implements Listener {
      * @handleCancelled
      */
     public function onItemUse(PlayerItemUseEvent $event): void {
-        if(SessionFactory::getSession($event->getPlayer())->isSpectator()) {
+        if(SessionFactory::getSession($event->getPlayer())?->isSpectator() === true) {
             $event->uncancel();
         }
     }
@@ -501,6 +483,23 @@ class GameListener implements Listener {
     private function getTeamByPosition(Game $game, Vector3 $position): ?Team {
         foreach($game->getTeams() as $team) {
             if($team->getZone()->isInside($position)) {
+                return $team;
+            }
+        }
+        return null;
+    }
+
+    private function isBedPosition(Vector3 $bed_position, Vector3 $block_position): bool {
+        // The map setup stores the clicked block, while maps read from disk are stored
+        // with a one-block offset: accept both conventions instead of losing the bed.
+        return (int) $bed_position->getX() === (int) $block_position->getX()
+            and (int) $bed_position->getZ() === (int) $block_position->getZ()
+            and abs((int) $bed_position->getY() - (int) $block_position->getY()) <= 1;
+    }
+
+    private function getTeamByClaim(Game $game, Vector3 $position): ?Team {
+        foreach($game->getTeams() as $team) {
+            if($team->getClaim()->isInside($position)) {
                 return $team;
             }
         }

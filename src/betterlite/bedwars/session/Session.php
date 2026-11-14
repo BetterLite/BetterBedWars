@@ -64,7 +64,7 @@ class Session {
     private int $kills = 0;
     private int $wins = 0;
 
-    private bool $loading_data;
+    private bool $loading_data = false;
 
     public function __construct(Player $player) {
         $this->player = $player;
@@ -378,6 +378,11 @@ class Session {
 
     public function kill(int $cause): void {
         $killer_session = $this->getLastSessionHit();
+        if($killer_session !== null and ($killer_session === $this or !$killer_session->isOnline() or $killer_session->getGame() !== $this->game)) {
+            // The "last hit" stays valid for a few seconds: never credit a player who
+            // already left this game (or the victim himself).
+            $killer_session = null;
+        }
         $session_username = $this->getColoredUsername();
 
         if($killer_session !== null) {
@@ -419,6 +424,9 @@ class Session {
 
         $this->game_settings->decreasePickaxeTier();
         $this->game_settings->decreaseAxeTier();
+        // Clear the inventory on every path: leaving it behind (e.g. when the match is
+        // already ending) would duplicate the items already dropped to the killer.
+        $this->clearCommonInventories();
 
         if(!$this->hasTeam()) {
             $this->game->removePlayer($this, false, true);
@@ -432,7 +440,6 @@ class Session {
         }
         $this->respawn_time = self::RESPAWN_DURATION;
 
-        $this->clearCommonInventories();
         $this->title(
             "{RED}YOU DIED!",
             $message = "{YELLOW}You will respawn in {RED}" . self::RESPAWN_DURATION . " {YELLOW}seconds!", 0, 41

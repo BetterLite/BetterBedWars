@@ -55,7 +55,8 @@ class ToolsCategory extends Category {
             1, 2 => 10,
             3 => 3,
             4 => 6,
-            5 => 0
+            5 => 0,
+            default => 0
         };
     }
 
@@ -63,7 +64,8 @@ class ToolsCategory extends Category {
         return match($tier) {
             1, 2 => VanillaItems::IRON_INGOT(),
             3, 4 => VanillaItems::GOLD_INGOT(),
-            5 => VanillaItems::AIR()
+            5 => VanillaItems::AIR(),
+            default => VanillaItems::AIR()
         };
     }
 

@@ -67,7 +67,7 @@ class SqliteProvider extends Provider {
         $stmt->execute();
     }
 
-    private function fetchUserDetails(string $xuid): array {
+    private function fetchUserDetails(string $xuid): array|false {
         $stmt = $this->sqlite->prepare("SELECT * FROM bedwars_users WHERE xuid = :xuid");
         $stmt->bindParam(":xuid", $xuid);
         $result = $stmt->execute();

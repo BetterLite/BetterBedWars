@@ -22,6 +22,8 @@ use betterlite\bedwars\game\entity\shop\Villager;
 use betterlite\bedwars\game\generator\Generator;
 use betterlite\bedwars\game\generator\presets\TextGenerator;
 use betterlite\bedwars\game\map\Map;
+use betterlite\bedwars\game\stage\EndingStage;
+use betterlite\bedwars\game\stage\PlayingStage;
 use betterlite\bedwars\game\stage\Stage;
 use betterlite\bedwars\game\stage\WaitingStage;
 use betterlite\bedwars\game\task\RemoveGameTask;
@@ -166,13 +168,21 @@ class Game {
         $this->blocks[] = $position;
     }
 
-    public function addPlayer(Session $session): void {
+    public function addPlayer(Session $session): bool {
+        // Never let a player join a full game or a match that has already started:
+        // they would end up without a team, without a spawn and unable to respawn.
+        if($this->isFull() or $this->stage instanceof PlayingStage or $this->stage instanceof EndingStage) {
+            return false;
+        }
+
         $this->players[] = $session;
 
         $this->stage->onJoin($session);
 
         $this->updateScoreboards();
         $this->updatePlayEntities();
+
+        return true;
     }
 
     public function removePlayer(Session $session, bool $teleport_to_hub = true, bool $set_spectator = false): void {
@@ -225,7 +235,12 @@ class Game {
     }
 
     private function updatePlayEntities(): void {
-        foreach(Server::getInstance()->getWorldManager()->getDefaultWorld()->getEntities() as $entity) {
+        $default_world = Server::getInstance()->getWorldManager()->getDefaultWorld();
+        if($default_world === null) {
+            return;
+        }
+
+        foreach($default_world->getEntities() as $entity) {
             if($entity instanceof PlayBedwarsEntity and $entity->getPlayersPerTeam() === $this->map->getPlayersPerTeam()) {
                 $entity->updateNameTag();
             }

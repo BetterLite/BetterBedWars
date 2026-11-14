@@ -8,6 +8,7 @@ namespace betterlite\bedwars\game\shop\item;
 
 use Closure;
 use pocketmine\block\Block;
+use pocketmine\block\BlockTypeIds;
 use pocketmine\item\Item;
 use pocketmine\utils\TextFormat;
 use betterlite\bedwars\game\shop\Product;
@@ -60,13 +61,19 @@ class ItemProduct extends Product {
 
     public function onPurchase(Session $session): bool {
         $inventory = $session->getPlayer()->getInventory();
-        if(!$inventory->canAddItem($this->item)) {
+        // Some products only run a purchase listener (e.g. the armor category): they
+        // carry an air item, which must not fail the inventory check nor be added.
+        $gives_item = $this->item->getTypeId() !== BlockTypeIds::AIR;
+
+        if($gives_item and !$inventory->canAddItem($this->item)) {
             $session->message("{RED}Your inventory is full!");
             return false;
         }
 
         $this->executePurchaseListener($session);
-        $inventory->addItem($this->item);
+        if($gives_item) {
+            $inventory->addItem($this->item);
+        }
         return true;
     }
 

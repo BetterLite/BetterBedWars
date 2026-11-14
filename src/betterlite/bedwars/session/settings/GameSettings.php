@@ -101,6 +101,12 @@ class GameSettings {
     }
 
     public function apply(): void {
+        // Upgrades, team name tag and team color live on the team: without one there is
+        // nothing to apply (and getTeam() would be null).
+        if(!$this->session->hasTeam()) {
+            return;
+        }
+
         $player = $this->session->getPlayer();
         if(!$player->isConnected()) {
             return;
@@ -147,7 +153,9 @@ class GameSettings {
         $item = StringToItemParser::getInstance()->parse(strtolower($this->getMaterial($tier) . "_" . $name));
         $item->setUnbreakable();
         $item->addEnchantment(new EnchantmentInstance(VanillaEnchantments::EFFICIENCY(), $tier !== 4 ? $tier : 3));
-        if($tier === 3) {
+        // Sharpness only matters on the axe (a weapon in BedWars): on a pickaxe it has
+        // no effect and only made the shop description misleading.
+        if($tier === 3 and strtolower($name) === "axe") {
             $item->addEnchantment(new EnchantmentInstance(VanillaEnchantments::SHARPNESS(), 3));
         }
         return $item;
@@ -176,7 +184,8 @@ class GameSettings {
             0, 1 => "Wooden",
             2 => "Iron",
             3 => "Golden",
-            4, 5 => "Diamond"
+            4, 5 => "Diamond",
+            default => "Wooden"
         };
     }
 

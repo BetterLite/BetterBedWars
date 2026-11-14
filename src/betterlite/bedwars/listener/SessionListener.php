@@ -19,7 +19,7 @@ class SessionListener implements Listener {
     }
 
     public function onJoin(PlayerJoinEvent $event): void {
-        SessionFactory::getSession($event->getPlayer())->teleportToHub();
+        SessionFactory::getSession($event->getPlayer())?->teleportToHub();
     }
 
     public function onQuit(PlayerQuitEvent $event): void {

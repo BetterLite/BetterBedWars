@@ -9,7 +9,7 @@
 Solo, Duos & Squads · Spectator mode · In-game map creation · Shops, upgrades & traps
 
 [![API](https://img.shields.io/badge/API-5.0.0-blue)](https://github.com/pmmp/PocketMine-MP)
-[![Version](https://img.shields.io/badge/version-1.2.2-green)](changelogs/1.2.2.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-green)](changelogs/1.3.0.md)
 [![License](https://img.shields.io/badge/license-LGPL--3.0-orange)](LICENSE)
 
 </div>
@@ -38,7 +38,7 @@ BetterBedWars is a PvP minigame where teams must protect their bed from being de
 ### What this fork adds
 - ✅ **20+ bug fixes** (crashes on quit, map creation, MySQL loading, traps, TNT, tracking and more)
 - ✅ **All original TODOs completed** — final kills, trap sounds, `Mode`/`ShopId` enums, deduplicated code
-- See the full list in the [changelog](changelogs/1.2.0.md).
+- See the full list in the [changelog](changelogs/1.2.2.md).
 
 ## 📥 Installation
 

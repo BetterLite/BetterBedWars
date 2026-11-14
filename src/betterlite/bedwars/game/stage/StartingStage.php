@@ -7,9 +7,11 @@ namespace betterlite\bedwars\game\stage;
 
 
 use pocketmine\world\sound\ClickSound;
+use betterlite\bedwars\BedWars;
 use betterlite\bedwars\game\stage\trait\JoinableTrait;
 use betterlite\bedwars\session\Session;
 use betterlite\bedwars\utils\GameUtils;
+use Throwable;
 use function count;
 use function str_replace;
 
@@ -42,7 +44,17 @@ class StartingStage extends Stage {
             $this->game->broadcastMessage($this->getStartingMessage());
         }
         if($this->countdown === 5) {
-            $this->game->setupWorld();
+            try {
+                $this->game->setupWorld();
+            } catch(Throwable $exception) {
+                // A missing or broken arena must not kill the game ticker: log it and
+                // put the game back in the waiting stage instead of starting a dead match.
+                BedWars::getInstance()->getLogger()->logException($exception);
+                $this->game->unloadWorld();
+                $this->game->broadcastMessage("{RED}Failed to prepare the arena! Returning to the waiting lobby.");
+                $this->game->setStage(new WaitingStage());
+                return;
+            }
         } elseif($this->countdown === 10) {
             $this->broadcastCountdownTitle();
         }

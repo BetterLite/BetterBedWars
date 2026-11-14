@@ -63,6 +63,10 @@ abstract class Villager extends Entity {
         }
 
         $session = SessionFactory::getSession($damager);
+        if($session === null) {
+            return;
+        }
+
         if($session->isPlaying()) {
             $damager->sendForm($this->getForm($session));
         } else {
@@ -71,7 +75,12 @@ abstract class Villager extends Entity {
     }
 
     public function onInteract(Player $player, Vector3 $clickPos): bool {
-        $player->sendForm($this->getForm(SessionFactory::getSession($player)));
+        $session = SessionFactory::getSession($player);
+        if($session === null) {
+            return true;
+        }
+
+        $player->sendForm($this->getForm($session));
         return true;
     }
 

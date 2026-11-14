@@ -8,7 +8,6 @@ namespace betterlite\bedwars\game\map;
 
 use pocketmine\math\Vector3;
 use pocketmine\Server;
-use pocketmine\utils\ServerException;
 use betterlite\bedwars\BedWars;
 use betterlite\bedwars\game\generator\GeneratorType;
 use betterlite\bedwars\game\generator\presets\GoldGenerator;
@@ -17,6 +16,9 @@ use betterlite\bedwars\game\team\Area;
 use betterlite\bedwars\game\team\Team;
 use function array_filter;
 use function array_map;
+use function array_values;
+use function is_array;
+use function is_file;
 use function file_get_contents;
 use function file_put_contents;
 use function json_decode;
@@ -32,6 +34,10 @@ class MapFactory {
 
     static public function init(): void {
         foreach(self::readMapsData() as $map_data) {
+            if(!is_array($map_data)) {
+                continue;
+            }
+
             $name = $map_data["name"];
             $world_name = $map_data["waiting_world"];
             $position_data = $map_data["spectator_spawn_position"];
@@ -40,7 +46,9 @@ class MapFactory {
 
             $world_manager = Server::getInstance()->getWorldManager();
             if(!$world_manager->loadWorld($world_name)) {
-                throw new ServerException("Couldn't load " . $name . " map because the world doesn't exist. (" . $world_name . ")");
+                // One broken map must not take the whole plugin (and every other map) down.
+                BedWars::getInstance()->getLogger()->error("Couldn't load the map \"" . $name . "\": the world \"" . $world_name . "\" doesn't exist. Skipping it.");
+                continue;
             }
 
             $waiting_world = $world_manager->getWorldByName($world_name);
@@ -135,14 +143,27 @@ class MapFactory {
      * @return array[]
      */
     static public function readMapsData(): array {
-        return json_decode(file_get_contents(BedWars::getInstance()->getDataFolder() . "maps.json"), true) ?? [];
+        $path = BedWars::getInstance()->getDataFolder() . "maps.json";
+        if(!is_file($path)) {
+            return [];
+        }
+
+        $contents = file_get_contents($path);
+        if($contents === false) {
+            return [];
+        }
+
+        $data = json_decode($contents, true);
+        return is_array($data) ? $data : [];
     }
 
     /**
      * @param array[] $data
      */
     static public function writeMapsData(array $data): void {
-        file_put_contents(BedWars::getInstance()->getDataFolder() . "maps.json", json_encode($data, JSON_THROW_ON_ERROR));
+        // Always write a JSON array: deleting an entry must not leave a JSON object
+        // with gaps in the indexes behind.
+        file_put_contents(BedWars::getInstance()->getDataFolder() . "maps.json", json_encode(array_values($data), JSON_THROW_ON_ERROR));
     }
 
     static private function createVector(array $data): Vector3 {

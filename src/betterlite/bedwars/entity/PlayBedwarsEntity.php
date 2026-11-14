@@ -61,6 +61,9 @@ class PlayBedwarsEntity extends Human {
             return;
         }
 
+        // The NPC must never take damage or die from a normal hit.
+        $source->cancel();
+
         if($damager->hasPermission(DefaultPermissions::ROOT_OPERATOR) and
             $damager->getInventory()->getItemInHand()->getTypeId() === BlockTypeIds::BEDROCK) {
             $this->kill();

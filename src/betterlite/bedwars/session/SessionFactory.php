@@ -38,7 +38,7 @@ class SessionFactory {
     }
 
     static public function removeSession(Player $player): void {
-        self::getSession($player)->save();
+        self::getSession($player)?->save();
         unset(self::$sessions[strtolower($player->getName())]);
     }
 

@@ -29,6 +29,15 @@ class EndingStage extends Stage {
         // during the ending phase can't change the result.
         $this->winner = count($alive_teams) === 1 ? $alive_teams[0] : null;
 
+        // Rewards are handed out exactly once, here: onJoin() must not be able to
+        // give a win and coins to someone who joins while the match is ending.
+        if(!$this->tie) {
+            foreach($this->game->getPlayers() as $session) {
+                $session->addWin();
+                $session->addCoins(140);
+            }
+        }
+
         // Update scoreboards to show the EndingStage scoreboard
         $this->game->updateScoreboards();
     }
@@ -38,11 +47,6 @@ class EndingStage extends Stage {
     }
 
     public function onJoin(Session $session): void {
-        if(!$this->tie) {
-            $session->addWin();
-            $session->addCoins(140);
-        }
-
         $session->title($this->getTitle(), "", 0, $this->time * 20);
         $session->resetSettings();
     }

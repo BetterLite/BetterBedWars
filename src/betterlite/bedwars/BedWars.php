@@ -66,6 +66,7 @@ use betterlite\bedwars\provider\sqlite\SqliteProvider;
 use betterlite\bedwars\session\SessionFactory;
 use betterlite\bedwars\utils\ConfigGetter;
 use function basename;
+use function is_a;
 use function strtolower;
 
 class BedWars extends PluginBase {
@@ -118,6 +119,11 @@ class BedWars extends PluginBase {
             $session->save();
         }
 
+        // onEnable() may have failed before the game manager was created.
+        if(!isset($this->game_manager)) {
+            return;
+        }
+
         foreach($this->game_manager->getGames() as $game) {
             $game->unloadWorld();
             $this->getServer()->getAsyncPool()->submitTask(new RemoveGameTask($game));
@@ -130,7 +136,14 @@ class BedWars extends PluginBase {
 
     private function registerEntity(string $class): void {
         EntityFactory::getInstance()->register($class, function(World $world, CompoundTag $nbt) use ($class): Entity {
-            return new $class(EntityDataHelper::parseLocation($nbt, $world), Human::parseSkinNBT($nbt), $nbt);
+            $location = EntityDataHelper::parseLocation($nbt, $world);
+
+            // Human-based entities (the join NPC) take a skin as their second constructor
+            // argument, while plain entities (the shop villagers) take the NBT tag.
+            if(is_a($class, Human::class, true)) {
+                return new $class($location, Human::parseSkinNBT($nbt), $nbt);
+            }
+            return new $class($location, $nbt);
         }, ["bedwars:" . basename($class)]);
     }
 

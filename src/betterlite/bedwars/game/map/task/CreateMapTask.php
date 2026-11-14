@@ -25,7 +25,10 @@ class CreateMapTask extends AsyncTask {
         $this->destination_path = BedWars::getInstance()->getDataFolder() . "worlds/" . $map->getName();
 
         $world_manager = Server::getInstance()->getWorldManager();
-        $world_manager->unloadWorld($world_manager->getWorldByName($map->getPlayingWorld()));
+        $world = $world_manager->getWorldByName($map->getPlayingWorld());
+        if($world !== null) {
+            $world_manager->unloadWorld($world);
+        }
     }
 
     public function onRun(): void {

@@ -35,8 +35,10 @@ class GameScoreboard extends Scoreboard {
 
         if($stage instanceof PlayingStage) {
             $event = $stage->getNextEvent();
-            $lines[12] = "{WHITE}" . $event->getName() . " in: {GREEN}" . gmdate("i:s", $event->getTimeRemaining()) . "   ";
-            $lines[11] = "  ";
+            if($event !== null) {
+                $lines[12] = "{WHITE}" . $event->getName() . " in: {GREEN}" . gmdate("i:s", $event->getTimeRemaining()) . "   ";
+                $lines[11] = "  ";
+            }
         } elseif($stage instanceof EndingStage) {
             $winner = $stage->getWinner();
 

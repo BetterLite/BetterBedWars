@@ -23,15 +23,6 @@ class UpgradeProduct extends UpgradesProduct {
         $this->getUpgrade($team)->levelUp($team);
     }
 
-    protected function canPurchase(Team $team): bool {
-        $upgrade = $this->getUpgrade($team);
-        if($upgrade->canLevelUp()) {
-            $upgrade->levelUp($team);
-            return true;
-        }
-        return false;
-    }
-
     public function getDisplayName(Session $session): string {
         $upgrade = $this->getUpgrade($session->getTeam());
         $level = $upgrade->getLevel();
@@ -52,7 +43,11 @@ class UpgradeProduct extends UpgradesProduct {
     }
 
     private function getUpgrade(Team $team): Upgrade {
-        return $team->getUpgrades()->getUpgrade($this->name);
+        $upgrade = $team->getUpgrades()->getUpgrade($this->name);
+        if($upgrade === null) {
+            throw new \InvalidArgumentException("Unknown upgrade: " . $this->name);
+        }
+        return $upgrade;
     }
 
 }

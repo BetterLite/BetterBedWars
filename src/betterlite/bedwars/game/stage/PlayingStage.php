@@ -25,7 +25,7 @@ class PlayingStage extends Stage {
 
     private ?Event $next_event = null;
 
-    public function getNextEvent(): Event {
+    public function getNextEvent(): ?Event {
         return $this->next_event;
     }
 

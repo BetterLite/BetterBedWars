@@ -40,8 +40,18 @@ class DeleteMapTask extends AsyncTask {
 
         MapFactory::removeMap($map->getId());
 
+        // The waiting world can be shared by several maps: only unload it when no
+        // other map uses it anymore.
+        $in_use = false;
+        foreach(MapFactory::getMaps() as $other_map) {
+            if($other_map->getWaitingWorld()->getFolderName() === $this->waiting_world_folder) {
+                $in_use = true;
+                break;
+            }
+        }
+
         $world = Server::getInstance()->getWorldManager()->getWorldByName($this->waiting_world_folder);
-        if($world !== null and $world->isLoaded()) {
+        if(!$in_use and $world !== null and $world->isLoaded()) {
             Server::getInstance()->getWorldManager()->unloadWorld($world);
         }
 

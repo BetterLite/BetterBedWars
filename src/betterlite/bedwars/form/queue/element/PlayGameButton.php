@@ -22,12 +22,17 @@ class PlayGameButton extends Button {
             }
 
             $session = SessionFactory::getSession($player);
-            if($session->isSpectator()) {
+            if($session === null) {
+                return;
+            }
+            if($session->isSpectator() and $session->getGame() !== null) {
                 $session->getGame()->removeSpectator($session);
             } elseif($session->isPlaying()) {
                 return;
             }
-            $game->addPlayer($session);
+            if(!$game->addPlayer($session)) {
+                $player->sendMessage(TextFormat::RED . "This game is not available anymore! Try again in a few seconds");
+            }
         });
     }
 

@@ -59,8 +59,8 @@ class SetupListener implements Listener {
         return BedwarsItems::getAll()[strtoupper($tag->getValue())] ?? null;
     }
 
-    private function isCreatingMap(Session $session, Item $item): bool {
-        return $session->isCreatingMap() and $item->getNamedTag()->getTag("setup") !== null;
+    private function isCreatingMap(?Session $session, Item $item): bool {
+        return $session !== null and $session->isCreatingMap() and $item->getNamedTag()->getTag("setup") !== null;
     }
 
 }

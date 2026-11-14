@@ -8,7 +8,9 @@ namespace betterlite\bedwars\game\team;
 
 use JsonSerializable;
 use pocketmine\block\Air;
+use pocketmine\block\Bed;
 use pocketmine\item\VanillaItems;
+use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\player\GameMode;
 use pocketmine\utils\Utils;
@@ -21,6 +23,7 @@ use betterlite\bedwars\game\team\upgrade\trap\AlarmTrap;
 use betterlite\bedwars\game\team\upgrade\trap\Trap;
 use betterlite\bedwars\session\Session;
 use betterlite\bedwars\utils\ColorUtils;
+use function array_key_first;
 use function array_search;
 use function count;
 use function in_array;
@@ -129,12 +132,29 @@ class Team implements JsonSerializable {
 
     private function breakBedBlock(Game $game): void {
         $world = $game->getWorld();
+        if($world === null) {
+            return;
+        }
+
         $position = Position::fromObject($this->bed_position, $world);
 
         $world->requestChunkPopulation($position->getX() >> Chunk::COORD_BIT_SIZE, $position->getZ() >> Chunk::COORD_BIT_SIZE, null)->onCompletion(
             function() use ($world, $position) {
-                $blocks = $world->getBlock($position)->getAffectedBlocks();
-                foreach($blocks as $block) {
+                // The stored position can be the bed itself or the block it was placed on:
+                // break the bed wherever it actually is.
+                $bed = $world->getBlock($position);
+                if(!$bed instanceof Bed) {
+                    $above = $world->getBlock($position->getSide(Facing::UP));
+                    $below = $world->getBlock($position->getSide(Facing::DOWN));
+
+                    if($above instanceof Bed) {
+                        $bed = $above;
+                    } elseif($below instanceof Bed) {
+                        $bed = $below;
+                    }
+                }
+
+                foreach($bed->getAffectedBlocks() as $block) {
                     if($block instanceof Air) {
                         continue;
                     }
@@ -181,10 +201,14 @@ class Team implements JsonSerializable {
     }
 
     public function removeMember(Session $session): void {
-        unset($this->members[array_search($session, $this->members, true)]);
+        $index = array_search($session, $this->members, true);
+        if($index !== false) {
+            unset($this->members[$index]);
+        }
 
-        if($this->isEmpty()) {
-            $this->destroyBed($session->getGame());
+        $game = $session->getGame();
+        if($game !== null and $this->isEmpty() and !$this->bed_destroyed) {
+            $this->destroyBed($game);
         }
 
         $session->setTeam(null);
@@ -226,6 +250,10 @@ class Team implements JsonSerializable {
     }
 
     public function jsonSerialize(): array {
+        // A team saved without generators must still produce a valid entry instead of
+        // crashing on generators[0].
+        $generator_position = $this->generators !== [] ? $this->generators[array_key_first($this->generators)]->getPosition() : $this->spawn_point;
+
         return [
             "name" => $this->name,
             "spawn_point" => [
@@ -239,9 +267,9 @@ class Team implements JsonSerializable {
                 "z" => $this->bed_position->getZ()
             ],
             "generator" => [
-                "x" => $this->generators[0]->getPosition()->getX(),
-                "y" => $this->generators[0]->getPosition()->getY(),
-                "z" => $this->generators[0]->getPosition()->getZ()
+                "x" => $generator_position->getX(),
+                "y" => $generator_position->getY(),
+                "z" => $generator_position->getZ()
             ],
             "areas" => [
                 "zone" => $this->zone->jsonSerialize(),
