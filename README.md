@@ -38,7 +38,7 @@ BetterBedWars is a PvP minigame where teams must protect their bed from being de
 ### What this fork adds
 - ✅ **20+ bug fixes** (crashes on quit, map creation, MySQL loading, traps, TNT, tracking and more)
 - ✅ **All original TODOs completed** — final kills, trap sounds, `Mode`/`ShopId` enums, deduplicated code
-- See the full list in the [changelog](changelogs/1.2.2.md).
+- See the full list in the [changelog](changelogs/1.4.0.md).
 
 ## 📥 Installation
 
