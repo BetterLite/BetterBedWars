@@ -25,11 +25,20 @@ class RemoveGameTask extends AsyncTask {
     }
 
     public function onRun(): void {
-        Filesystem::recursiveUnlink($this->world_path);
+        if(is_dir($this->world_path)) {
+            Filesystem::recursiveUnlink($this->world_path);
+        }
     }
 
     public function onCompletion(): void {
-        BedWars::getInstance()->getGameManager()->removeGame($this->id);
+        $gameManager = BedWars::getInstance()->getGameManager();
+        // Only remove if the game still exists (it might have been removed already during reset)
+        foreach($gameManager->getGames() as $game) {
+            if($game->getId() === $this->id) {
+                $gameManager->removeGame($this->id);
+                break;
+            }
+        }
     }
 
 }

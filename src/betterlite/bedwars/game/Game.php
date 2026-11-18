@@ -258,11 +258,17 @@ class Game {
     }
 
     public function tickGenerators(): void {
+        // Tick map-level generators (shared by all teams)
         foreach($this->generators as $generator) {
             $generator->tick($this);
         }
+        // Tick team-specific generators (only for alive teams)
         foreach($this->teams as $team) {
-            $team->tickGenerators($this);
+            if($team->isAlive()) {
+                foreach($team->getGenerators() as $generator) {
+                    $generator->tick($this);
+                }
+            }
         }
     }
 

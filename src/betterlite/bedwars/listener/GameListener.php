@@ -230,7 +230,10 @@ class GameListener implements Listener {
         }
 
         $team = $this->getTeamByPosition($session->getGame(), $player->getPosition());
-        if($team === null or $team->isBedDestroyed() or $session->getTeam()->getName() === $team->getName()) {
+        if($team === null) {
+            return; // Player is not in any team zone
+        }
+        if($team->isBedDestroyed() or $session->getTeam()->getName() === $team->getName()) {
             return;
         }
 

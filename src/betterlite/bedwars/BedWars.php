@@ -42,6 +42,7 @@ use pocketmine\entity\Human;
 use pocketmine\event\Listener;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\plugin\PluginBase;
+use pocketmine\utils\Filesystem;
 use pocketmine\utils\SingletonTrait;
 use pocketmine\world\World;
 use betterlite\bedwars\command\BedWarsCommand;
@@ -112,6 +113,13 @@ class BedWars extends PluginBase {
         $this->getServer()->getCommandMap()->register("bedwars", new BedWarsCommand());
 
         $this->getScheduler()->scheduleRepeatingTask(new GameHeartbeat(), 1);
+
+        // Periodic cleanup of offline sessions to prevent memory leaks
+        $this->getScheduler()->scheduleRepeatingTask(new class extends \pocketmine\scheduler\Task {
+            public function onRun(): void {
+                \betterlite\bedwars\session\SessionFactory::cleanupOfflineSessions();
+            }
+        }, 20 * 60 * 5); // Every 5 minutes
     }
 
     protected function onDisable(): void {
@@ -126,7 +134,10 @@ class BedWars extends PluginBase {
 
         foreach($this->game_manager->getGames() as $game) {
             $game->unloadWorld();
-            $this->getServer()->getAsyncPool()->submitTask(new RemoveGameTask($game));
+            $world_path = $this->getServer()->getDataPath() . "worlds/" . $game->getMap()->getName() . "-" . $game->getId();
+            if(is_dir($world_path)) {
+                Filesystem::recursiveUnlink($world_path);
+            }
         }
     }
 

@@ -63,7 +63,7 @@ class GameManager {
     }
 
     public function getGameByWorld(World $world): ?Game {
-        foreach(BedWars::getInstance()->getGameManager()->getGames() as $game) {
+        foreach($this->games as $game) {
             if($game->getWorld() === $world) {
                 return $game;
             }

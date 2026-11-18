@@ -42,4 +42,17 @@ class SessionFactory {
         unset(self::$sessions[strtolower($player->getName())]);
     }
 
+    /**
+     * Clean up sessions for players who are no longer online.
+     * Should be called periodically to prevent memory leaks.
+     */
+    static public function cleanupOfflineSessions(): void {
+        foreach(self::$sessions as $name => $session) {
+            if(!$session->isOnline()) {
+                $session->save();
+                unset(self::$sessions[$name]);
+            }
+        }
+    }
+
 }

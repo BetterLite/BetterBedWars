@@ -19,9 +19,17 @@ abstract class MysqlAsyncTask extends AsyncTask {
     }
 
     public function onRun(): void {
-        $mysqli = $this->credentials->getMysqli();
-        $this->onConnection($mysqli);
-        $mysqli->close();
+        try {
+            $mysqli = $this->credentials->getMysqli();
+            if($mysqli->connect_errno) {
+                BedWars::getInstance()->getLogger()->error("MySQL connection failed: " . $mysqli->connect_error);
+                return;
+            }
+            $this->onConnection($mysqli);
+            $mysqli->close();
+        } catch(\Throwable $e) {
+            BedWars::getInstance()->getLogger()->error("MySQL task failed: " . $e->getMessage());
+        }
     }
 
     abstract protected function onConnection(mysqli $mysqli): void;

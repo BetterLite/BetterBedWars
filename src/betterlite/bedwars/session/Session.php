@@ -266,6 +266,10 @@ class Session {
         return $this->mapSetup !== null;
     }
 
+    public function isLoadingData(): bool {
+        return $this->loading_data;
+    }
+
     public function isRespawning(): bool {
         return $this->respawn_time !== null;
     }

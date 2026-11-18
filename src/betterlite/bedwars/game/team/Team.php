@@ -139,7 +139,12 @@ class Team implements JsonSerializable {
         $position = Position::fromObject($this->bed_position, $world);
 
         $world->requestChunkPopulation($position->getX() >> Chunk::COORD_BIT_SIZE, $position->getZ() >> Chunk::COORD_BIT_SIZE, null)->onCompletion(
-            function() use ($world, $position) {
+            function() use ($game, $world, $position) {
+                // Check if game and world still exist
+                if($game->getWorld() !== $world || $world === null) {
+                    return;
+                }
+
                 // The stored position can be the bed itself or the block it was placed on:
                 // break the bed wherever it actually is.
                 $bed = $world->getBlock($position);
@@ -166,14 +171,7 @@ class Team implements JsonSerializable {
         );
     }
 
-    public function tickGenerators(Game $game): void {
-        if($this->isAlive()) {
-            foreach($this->generators as $generator) {
-                $generator->tick($game);
-            }
-        }
-    }
-
+    
     public function addGenerator(Generator $generator): void {
         $this->generators[] = $generator;
     }

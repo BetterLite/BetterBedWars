@@ -7,6 +7,7 @@ namespace betterlite\bedwars\provider\mysql\task;
 
 
 use mysqli;
+use betterlite\bedwars\BedWars;
 use betterlite\bedwars\provider\mysql\MysqlAsyncTask;
 use betterlite\bedwars\session\Session;
 use betterlite\bedwars\session\SessionFactory;
@@ -50,7 +51,7 @@ class LoadSessionTask extends MysqlAsyncTask {
 
     public function onCompletion(): void {
         $session = SessionFactory::getSessionByName($this->username);
-        if($session === null) {
+        if($session === null or !$session->isLoadingData()) {
             return;
         }
 
@@ -61,23 +62,29 @@ class LoadSessionTask extends MysqlAsyncTask {
         }
         $data = $rows[0];
 
-        // The query runs asynchronously: anything earned while it was in flight must be
-        // added to the stored values instead of being overwritten by them.
-        $coins = $session->getCoins() + (int) $data["coins"];
-        $kills = $session->getKills() + (int) $data["kills"];
-        $wins = $session->getWins() + (int) $data["wins"];
+        // Stats may be earned while the async load is in flight. Add the stored values
+        // to any in-memory delta instead of overwriting it.
+        $coins = (int) $data["coins"] + $session->getCoins();
+        $kills = (int) $data["kills"] + $session->getKills();
+        $wins = (int) $data["wins"] + $session->getWins();
 
+        $session->setCoins($coins);
+        $session->setKills($kills);
+        $session->setWins($wins);
         $session->setSpectatorSettings(SpectatorSettings::fromData($session, $data));
         $session->finishLoad();
 
-        if($session->getCoins() !== $coins) {
-            $session->setCoins($coins);
+        // Increments earned during the load were not persisted because loading_data was
+        // true; persist the merged totals if they changed from the stored values.
+        $provider = BedWars::getInstance()->getProvider();
+        if($coins !== (int) $data["coins"]) {
+            $provider->updateCoins($session);
         }
-        if($session->getKills() !== $kills) {
-            $session->setKills($kills);
+        if($kills !== (int) $data["kills"]) {
+            $provider->updateKills($session);
         }
-        if($session->getWins() !== $wins) {
-            $session->setWins($wins);
+        if($wins !== (int) $data["wins"]) {
+            $provider->updateWins($session);
         }
     }
 
